@@ -26,6 +26,7 @@ LandingPadController::LandingPadController() : Node("landing_pad_controller")
     retrievePidParameters();
     this->declare_parameter<float>("z_setpoint", 0.7);
     this->get_parameter("z_setpoint", z_setpoint_);
+    std::cout << "Z setpoint: " << z_setpoint_ << std::endl;
 
     initializeDJIFlightControl();
 }
@@ -38,12 +39,13 @@ void LandingPadController::positionCallback(const geometry_msgs::msg::Point::Sha
     // For velocity command, the coordinate system in body frame is Forward-Right-Down (FRD), as per PSDK documentation
     // It differs from the camera frame which is Right-Backward-Down, so we have to be careful
     // Error is always setpoint - current, so you can check for the signs of the error to see if the drone is moving in the correct direction
-    velocity_command.x = - y_pid_.calculate(0.5, msg->x);
-    velocity_command.y = x_pid_.calculate(0.5, msg->y);
-    velocity_command.z = - z_pid_.calculate(z_setpoint_, msg->z);
+    velocity_command.x = y_pid_.calculate(0.5, msg->x);
+    velocity_command.y = - x_pid_.calculate(0.5, msg->y);
+    velocity_command.z = z_pid_.calculate(z_setpoint_, msg->z);
     velocity_command.yaw = 0.0;
 
     velocity_pub_->publish(velocity_command);
+    RCLCPP_INFO(this->get_logger(), "X: %f, Y: %f, Z: %f", velocity_command.x, velocity_command.y, velocity_command.z);
 }
 
 void LandingPadController::initializeDJIFlightControl()
