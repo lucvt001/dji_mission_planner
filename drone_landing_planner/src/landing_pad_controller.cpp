@@ -39,8 +39,11 @@ void LandingPadController::positionCallback(const geometry_msgs::msg::Point::Sha
     // For velocity command, the coordinate system in body frame is Forward-Right-Down (FRD), as per PSDK documentation
     // It differs from the camera frame which is Right-Backward-Down, so we have to be careful
     // Error is always setpoint - current, so you can check for the signs of the error to see if the drone is moving in the correct direction
-    velocity_command.x = x_pid_.calculate(0.5, msg->y);
-    velocity_command.y = - y_pid_.calculate(0.5, msg->x);
+    float x_deviation_camera_frame = (msg->x - 0.5) * msg->z;
+    float y_deviation_camera_frame = (msg->y - 0.5) * msg->z;
+
+    velocity_command.x = x_pid_.calculate(0, y_deviation_camera_frame);
+    velocity_command.y = y_pid_.calculate(0, x_deviation_camera_frame);
     velocity_command.z = z_pid_.calculate(z_setpoint_, msg->z);
     velocity_command.yaw = 0.0;
 
