@@ -17,11 +17,11 @@ LandingPadController::LandingPadController() : Node("landing_pad_controller")
     landing_pad_position_sub_ = this->create_subscription<geometry_msgs::msg::Point>(
         position_topic_, 10, std::bind(&LandingPadController::positionCallback, this, std::placeholders::_1));
 
-    velocity_pub_ = this->create_publisher<payload_sdk_ros2_interfaces::msg::VelocityCommand>(velocity_command_topic_, 10);
+    velocity_pub_ = this->create_publisher<psdk_interfaces::msg::VelocityCommand>(velocity_command_topic_, 10);
 
-    obtain_joystick_authority_client_ = this->create_client<payload_sdk_ros2_interfaces::srv::ObtainJoystickAuthority>(obtain_joystick_authority_server_);
-    release_joystick_authority_client_ = this->create_client<payload_sdk_ros2_interfaces::srv::ReleaseJoystickAuthority>(release_joystick_authority_server_);
-    set_joystick_mode_client_ = this->create_client<payload_sdk_ros2_interfaces::srv::SetJoystickMode>(set_joystick_mode_server_);
+    obtain_joystick_authority_client_ = this->create_client<psdk_interfaces::srv::ObtainJoystickAuthority>(obtain_joystick_authority_server_);
+    release_joystick_authority_client_ = this->create_client<psdk_interfaces::srv::ReleaseJoystickAuthority>(release_joystick_authority_server_);
+    set_joystick_mode_client_ = this->create_client<psdk_interfaces::srv::SetJoystickMode>(set_joystick_mode_server_);
 
     retrievePidParameters();
     this->declare_parameter<float>("z_setpoint", 0.7);
@@ -33,7 +33,7 @@ LandingPadController::LandingPadController() : Node("landing_pad_controller")
 
 void LandingPadController::positionCallback(const geometry_msgs::msg::Point::SharedPtr msg)
 {
-    auto velocity_command = payload_sdk_ros2_interfaces::msg::VelocityCommand();
+    auto velocity_command = psdk_interfaces::msg::VelocityCommand();
 
     // Calculate pid from (setpoint, current)
     // For velocity command, the coordinate system in body frame is Forward-Right-Down (FRD), as per PSDK documentation
@@ -53,7 +53,7 @@ void LandingPadController::positionCallback(const geometry_msgs::msg::Point::Sha
 
 void LandingPadController::initializeDJIFlightControl()
 {
-    auto obtain_joystick_authority_request = std::make_shared<payload_sdk_ros2_interfaces::srv::ObtainJoystickAuthority::Request>();
+    auto obtain_joystick_authority_request = std::make_shared<psdk_interfaces::srv::ObtainJoystickAuthority::Request>();
     auto obtain_joystick_authority_result = obtain_joystick_authority_client_->async_send_request(obtain_joystick_authority_request);
     if (rclcpp::spin_until_future_complete(this->get_node_base_interface(), obtain_joystick_authority_result) == rclcpp::FutureReturnCode::SUCCESS)
     {
@@ -64,7 +64,7 @@ void LandingPadController::initializeDJIFlightControl()
     } else
         RCLCPP_ERROR(this->get_logger(), "Failed to obtain joystick authority");
 
-    auto set_joystick_mode_request = std::make_shared<payload_sdk_ros2_interfaces::srv::SetJoystickMode::Request>();
+    auto set_joystick_mode_request = std::make_shared<psdk_interfaces::srv::SetJoystickMode::Request>();
     set_joystick_mode_request->horizontal_control_mode = 1; // velocity control
     set_joystick_mode_request->vertical_control_mode = 0;   // velocity control
     set_joystick_mode_request->yaw_control_mode = 0;        // yaw angle control
@@ -142,7 +142,7 @@ void LandingPadController::retrievePidParameters()
 
 LandingPadController::~LandingPadController()
 {
-    auto release_joystick_authority_request = std::make_shared<payload_sdk_ros2_interfaces::srv::ReleaseJoystickAuthority::Request>();
+    auto release_joystick_authority_request = std::make_shared<psdk_interfaces::srv::ReleaseJoystickAuthority::Request>();
     auto release_joystick_authority_result = release_joystick_authority_client_->async_send_request(release_joystick_authority_request);
     if (rclcpp::spin_until_future_complete(this->get_node_base_interface(), release_joystick_authority_result) == rclcpp::FutureReturnCode::SUCCESS)
     {

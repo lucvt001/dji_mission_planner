@@ -3,10 +3,10 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/point.hpp>
-#include <payload_sdk_ros2_interfaces/msg/velocity_command.hpp>
-#include <payload_sdk_ros2_interfaces/srv/obtain_joystick_authority.hpp>
-#include <payload_sdk_ros2_interfaces/srv/release_joystick_authority.hpp>
-#include <payload_sdk_ros2_interfaces/srv/set_joystick_mode.hpp>
+#include <psdk_interfaces/msg/velocity_command.hpp>
+#include <psdk_interfaces/srv/obtain_joystick_authority.hpp>
+#include <psdk_interfaces/srv/release_joystick_authority.hpp>
+#include <psdk_interfaces/srv/set_joystick_mode.hpp>
 #include <pid_package/pid.h>
 
 class LandingPadController : public rclcpp::Node
@@ -21,11 +21,11 @@ private:
     void initializeDJIFlightControl();
 
     rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr landing_pad_position_sub_;
-    rclcpp::Publisher<payload_sdk_ros2_interfaces::msg::VelocityCommand>::SharedPtr velocity_pub_;
+    rclcpp::Publisher<psdk_interfaces::msg::VelocityCommand>::SharedPtr velocity_pub_;
 
-    rclcpp::Client<payload_sdk_ros2_interfaces::srv::ObtainJoystickAuthority>::SharedPtr obtain_joystick_authority_client_;
-    rclcpp::Client<payload_sdk_ros2_interfaces::srv::ReleaseJoystickAuthority>::SharedPtr release_joystick_authority_client_;
-    rclcpp::Client<payload_sdk_ros2_interfaces::srv::SetJoystickMode>::SharedPtr set_joystick_mode_client_;
+    rclcpp::Client<psdk_interfaces::srv::ObtainJoystickAuthority>::SharedPtr obtain_joystick_authority_client_;
+    rclcpp::Client<psdk_interfaces::srv::ReleaseJoystickAuthority>::SharedPtr release_joystick_authority_client_;
+    rclcpp::Client<psdk_interfaces::srv::SetJoystickMode>::SharedPtr set_joystick_mode_client_;
 
     std::string position_topic_;
     std::string velocity_command_topic_;

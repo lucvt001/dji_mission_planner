@@ -14,8 +14,8 @@ find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(pid_package REQUIRED)
-find_package(payload_sdk_ros2 REQUIRED)
-find_package(payload_sdk_ros2_interfaces REQUIRED)
+find_package(psdk_wrapper REQUIRED)
+find_package(psdk_interfaces REQUIRED)
 
 set(ROS_DEPENDENCIES
   ament_cmake
@@ -36,16 +36,16 @@ add_executable(drone_landing_planner src/main.cpp src/landing_pad_controller.cpp
 ament_target_dependencies(drone_landing_planner 
   ${ROS_DEPENDENCIES}
   pid_package
-  payload_sdk_ros2
-  payload_sdk_ros2_interfaces
+  psdk_wrapper
+  psdk_interfaces
 )
 
 add_executable(initial_testing src/initial_testing.cpp)
 ament_target_dependencies(initial_testing 
   ${ROS_DEPENDENCIES}
   pid_package
-  payload_sdk_ros2
-  payload_sdk_ros2_interfaces
+  psdk_wrapper
+  psdk_interfaces
 )
 
 install(TARGETS drone_landing_planner initial_testing
