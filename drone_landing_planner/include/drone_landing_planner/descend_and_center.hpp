@@ -9,23 +9,29 @@
 #include <psdk_interfaces/srv/set_joystick_mode.hpp>
 #include <pid_package/pid.h>
 
-class LandingPadController : public rclcpp::Node
+using ObtainJoystickAuthority = psdk_interfaces::srv::ObtainJoystickAuthority;
+using ReleaseJoystickAuthority = psdk_interfaces::srv::ReleaseJoystickAuthority;
+using SetJoystickMode = psdk_interfaces::srv::SetJoystickMode;
+using VelocityCommand = psdk_interfaces::msg::VelocityCommand;
+using Point = geometry_msgs::msg::Point;
+
+class DescendAndCenter : public rclcpp::Node
 {
 public:
-    LandingPadController();
-    ~LandingPadController();
+    DescendAndCenter();
+    ~DescendAndCenter();
 
 private:
-    void positionCallback(const geometry_msgs::msg::Point::SharedPtr msg);
+    void positionCallback(const Point::SharedPtr msg);
     void retrievePidParameters();
     void initializeDJIFlightControl();
 
-    rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr landing_pad_position_sub_;
-    rclcpp::Publisher<psdk_interfaces::msg::VelocityCommand>::SharedPtr velocity_pub_;
+    rclcpp::Subscription<Point>::SharedPtr landing_pad_position_sub_;
+    rclcpp::Publisher<VelocityCommand>::SharedPtr velocity_pub_;
 
-    rclcpp::Client<psdk_interfaces::srv::ObtainJoystickAuthority>::SharedPtr obtain_joystick_authority_client_;
-    rclcpp::Client<psdk_interfaces::srv::ReleaseJoystickAuthority>::SharedPtr release_joystick_authority_client_;
-    rclcpp::Client<psdk_interfaces::srv::SetJoystickMode>::SharedPtr set_joystick_mode_client_;
+    rclcpp::Client<ObtainJoystickAuthority>::SharedPtr obtain_joystick_authority_client_;
+    rclcpp::Client<ReleaseJoystickAuthority>::SharedPtr release_joystick_authority_client_;
+    rclcpp::Client<SetJoystickMode>::SharedPtr set_joystick_mode_client_;
 
     std::string position_topic_;
     std::string velocity_command_topic_;

@@ -32,7 +32,7 @@ include_directories(
   ${pid_package_INCLUDE_DIRS}
 )
 
-add_executable(drone_landing_planner src/main.cpp src/landing_pad_controller.cpp)
+add_executable(drone_landing_planner src/main.cpp src/descend_and_center.cpp)
 ament_target_dependencies(drone_landing_planner 
   ${ROS_DEPENDENCIES}
   pid_package
