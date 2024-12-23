@@ -1,0 +1,13 @@
+uint8 SUCCESS = 0
+uint8 TIMEOUT = 1
+uint8 PSDK_LOST_CTRL_AUTHORITY = 2
+uint8 OTHER_ERROR = 3
+
+# Goal
+int32 timeout
+---
+# Result
+uint8 error_code
+---
+# Feedback
+float32 current_height
