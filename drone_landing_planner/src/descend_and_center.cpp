@@ -4,35 +4,120 @@ DescendAndCenter::DescendAndCenter() : Node("descend_and_center_node")
 {
     this->declare_parameter<std::string>("landing_pad_position_topic", "/landing_pad_position");
     this->declare_parameter<std::string>("velocity_command_topic", "/drone_velocity_command");
-    this->declare_parameter<std::string>("obtain_joystick_authority_server", "/obtain_joystick_authority_service");
-    this->declare_parameter<std::string>("release_joystick_authority_server", "/release_joystick_authority_service");
-    this->declare_parameter<std::string>("set_joystick_mode_server", "/set_joystick_mode_service");
-
+    
     this->get_parameter("landing_pad_position_topic", position_topic_);
     this->get_parameter("velocity_command_topic", velocity_command_topic_);
-    this->get_parameter("obtain_joystick_authority_server", obtain_joystick_authority_server_);
-    this->get_parameter("release_joystick_authority_server", release_joystick_authority_server_);
-    this->get_parameter("set_joystick_mode_server", set_joystick_mode_server_);
+
+    std::string node_name = this->get_name();
+    
+    descend_and_center_action_server_ = rclcpp_action::create_server<DescendAndCenterAction>
+    (
+        this, node_name + "/descend_and_center_action",
+        [this](const rclcpp_action::GoalUUID & uuid, std::shared_ptr<const DescendAndCenterAction::Goal> goal) {
+            RCLCPP_INFO(this->get_logger(), "Received DescendAndCenter goal request");
+            (void)uuid;
+            // Accept the goal
+            return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+        },
+        [this](const std::shared_ptr<rclcpp_action::ServerGoalHandle<DescendAndCenterAction>> goal_handle) {
+            RCLCPP_INFO(this->get_logger(), "Received request to cancel DescendAndCenterAction goal");
+            // Accept the cancel request
+            return rclcpp_action::CancelResponse::ACCEPT;
+        },
+        [this](const std::shared_ptr<rclcpp_action::ServerGoalHandle<DescendAndCenterAction>> goal_handle) {
+            // Execute the goal in a separate thread
+            std::thread([this, goal_handle]() {
+                execute(goal_handle);
+            }).detach();
+        }
+    );
 
     landing_pad_position_sub_ = this->create_subscription<Point>(
         position_topic_, 10, std::bind(&DescendAndCenter::positionCallback, this, std::placeholders::_1));
 
     velocity_pub_ = this->create_publisher<VelocityCommand>(velocity_command_topic_, 10);
 
-    obtain_joystick_authority_client_ = this->create_client<ObtainJoystickAuthority>(obtain_joystick_authority_server_);
-    release_joystick_authority_client_ = this->create_client<ReleaseJoystickAuthority>(release_joystick_authority_server_);
-    set_joystick_mode_client_ = this->create_client<SetJoystickMode>(set_joystick_mode_server_);
-
     retrievePidParameters();
-    this->declare_parameter<float>("z_setpoint", 0.7);
+    this->declare_parameter<float>("z_setpoint", 1.0);
     this->get_parameter("z_setpoint", z_setpoint_);
     std::cout << "Z setpoint: " << z_setpoint_ << std::endl;
+}
 
-    initializeDJIFlightControl();
+void DescendAndCenter::execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<DescendAndCenterAction>> goal_handle)
+{
+    RCLCPP_INFO(this->get_logger(), "Executing DescendAndCenter action");
+    is_action_called_ = true;
+
+    auto goal = goal_handle->get_goal();
+    int timeout = goal->timeout;
+
+    auto result = std::make_shared<DescendAndCenterAction::Result>();
+    auto feedback = std::make_shared<DescendAndCenterAction::Feedback>();
+    auto starting_time = std::chrono::steady_clock::now();
+    rclcpp::Rate rate(100);
+
+    while (true)
+    {
+        if (is_completed_)
+        {
+            result->error_code = 0;
+            goal_handle->succeed(result);
+            return;
+        }
+
+        if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - starting_time).count() > timeout)
+        {
+            RCLCPP_ERROR(this->get_logger(), "DescendAndCenter action timed out");
+            result->error_code = 1;
+            goal_handle->abort(result);
+            return;
+        }
+        
+        if (goal_handle->is_canceling())
+        {
+            RCLCPP_INFO(this->get_logger(), "DescendAndCenter action is being cancelled");
+            result->error_code = 3;
+            goal_handle->canceled(result);
+            return;
+        }
+
+        feedback->current_height = z_current_;
+        goal_handle->publish_feedback(feedback);
+        rate.sleep();
+    }
+
 }
 
 void DescendAndCenter::positionCallback(const Point::SharedPtr msg)
 {
+    if (!is_action_called_)
+        return;
+
+    z_current_ = msg->z;
+    if (abs(z_current_ - z_setpoint_) < 0.2)
+    {
+        if (!prev_z_goal_reached_time_.has_value())
+        {
+            prev_z_goal_reached_time_ = std::chrono::steady_clock::now();
+        }
+        else
+        {
+            auto now = std::chrono::steady_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::seconds>(now - prev_z_goal_reached_time_.value()).count();
+            if (duration >= 3)
+            {
+                is_completed_ = true;
+                RCLCPP_INFO(this->get_logger(), "Goal reached for 3 seconds");
+            }
+        }
+        return;
+    }
+    else
+    {
+        // Reset the time if the goal is not reached
+        prev_z_goal_reached_time_.reset();
+    }
+        
     auto velocity_command = VelocityCommand();
 
     // Calculate pid from (setpoint, current)
@@ -49,37 +134,6 @@ void DescendAndCenter::positionCallback(const Point::SharedPtr msg)
 
     velocity_pub_->publish(velocity_command);
     RCLCPP_INFO(this->get_logger(), "Foward: %f, Right: %f, Up: %f", velocity_command.x, velocity_command.y, velocity_command.z);
-}
-
-void DescendAndCenter::initializeDJIFlightControl()
-{
-    auto obtain_joystick_authority_request = std::make_shared<ObtainJoystickAuthority::Request>();
-    auto obtain_joystick_authority_result = obtain_joystick_authority_client_->async_send_request(obtain_joystick_authority_request);
-    if (rclcpp::spin_until_future_complete(this->get_node_base_interface(), obtain_joystick_authority_result) == rclcpp::FutureReturnCode::SUCCESS)
-    {
-        if (obtain_joystick_authority_result.get()->is_success)
-            RCLCPP_INFO(this->get_logger(), "Obtained joystick authority");
-        else
-            RCLCPP_ERROR(this->get_logger(), "Failed to obtain joystick authority");
-    } else
-        RCLCPP_ERROR(this->get_logger(), "Failed to obtain joystick authority");
-
-    auto set_joystick_mode_request = std::make_shared<SetJoystickMode::Request>();
-    set_joystick_mode_request->horizontal_control_mode = 1; // velocity control
-    set_joystick_mode_request->vertical_control_mode = 0;   // velocity control
-    set_joystick_mode_request->yaw_control_mode = 0;        // yaw angle control
-    set_joystick_mode_request->horizontal_coordinate = 1;   // body frame
-    set_joystick_mode_request->stable_control_mode = 1;     // stable mode enabled
-
-    auto set_joystick_mode_result = set_joystick_mode_client_->async_send_request(set_joystick_mode_request);
-    if (rclcpp::spin_until_future_complete(this->get_node_base_interface(), set_joystick_mode_result) == rclcpp::FutureReturnCode::SUCCESS)
-    {
-        if (set_joystick_mode_result.get()->is_success)
-            RCLCPP_INFO(this->get_logger(), "Set joystick mode successfully");
-        else
-            RCLCPP_ERROR(this->get_logger(), "Failed to set joystick mode");
-    } else
-        RCLCPP_ERROR(this->get_logger(), "Failed to set joystick mode");
 }
 
 void DescendAndCenter::retrievePidParameters()
@@ -140,16 +194,11 @@ void DescendAndCenter::retrievePidParameters()
     std::cout << "Z PID: " << z_kp << " " << z_ki << " " << z_kd << " " << z_dt << " " << z_max << " " << z_min << std::endl;
 }
 
-DescendAndCenter::~DescendAndCenter()
+int main(int argc, char **argv)
 {
-    auto release_joystick_authority_request = std::make_shared<ReleaseJoystickAuthority::Request>();
-    auto release_joystick_authority_result = release_joystick_authority_client_->async_send_request(release_joystick_authority_request);
-    if (rclcpp::spin_until_future_complete(this->get_node_base_interface(), release_joystick_authority_result) == rclcpp::FutureReturnCode::SUCCESS)
-    {
-        if (release_joystick_authority_result.get()->is_success)
-            RCLCPP_INFO(this->get_logger(), "Released joystick authority upon destructor called");
-        else
-            RCLCPP_ERROR(this->get_logger(), "Failed to release joystick authority");
-    } else
-        RCLCPP_ERROR(this->get_logger(), "Failed to release joystick authority");
+    rclcpp::init(argc, argv);
+    auto node = std::make_shared<DescendAndCenter>();
+    rclcpp::spin(node);
+    rclcpp::shutdown();
+    return 0;
 }

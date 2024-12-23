@@ -16,6 +16,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(pid_package REQUIRED)
 find_package(psdk_wrapper REQUIRED)
 find_package(psdk_interfaces REQUIRED)
+find_package(dji_mission_interfaces REQUIRED)
 
 set(ROS_DEPENDENCIES
   ament_cmake
@@ -32,23 +33,25 @@ include_directories(
   ${pid_package_INCLUDE_DIRS}
 )
 
-add_executable(drone_landing_planner src/main.cpp src/descend_and_center.cpp)
-ament_target_dependencies(drone_landing_planner 
+add_executable(descend_and_center src/descend_and_center.cpp)
+ament_target_dependencies(descend_and_center 
   ${ROS_DEPENDENCIES}
   pid_package
   psdk_wrapper
   psdk_interfaces
+  dji_mission_interfaces
 )
 
-add_executable(initial_testing src/initial_testing.cpp)
-ament_target_dependencies(initial_testing 
+add_executable(drone_landing_testing src/drone_landing_testing.cpp src/init_flight_control.cpp)
+ament_target_dependencies(drone_landing_testing 
   ${ROS_DEPENDENCIES}
   pid_package
   psdk_wrapper
   psdk_interfaces
+  dji_mission_interfaces
 )
 
-install(TARGETS drone_landing_planner initial_testing
+install(TARGETS drone_landing_testing descend_and_center
   DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY launch config
   DESTINATION share/${PROJECT_NAME})

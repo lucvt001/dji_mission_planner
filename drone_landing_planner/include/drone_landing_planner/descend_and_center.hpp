@@ -2,42 +2,36 @@
 #define LANDING_PAD_CONTROLLER_HPP
 
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp_action/rclcpp_action.hpp>
 #include <geometry_msgs/msg/point.hpp>
 #include <psdk_interfaces/msg/velocity_command.hpp>
-#include <psdk_interfaces/srv/obtain_joystick_authority.hpp>
-#include <psdk_interfaces/srv/release_joystick_authority.hpp>
-#include <psdk_interfaces/srv/set_joystick_mode.hpp>
+#include <dji_mission_interfaces/action/descend_and_center.hpp>
 #include <pid_package/pid.h>
 
-using ObtainJoystickAuthority = psdk_interfaces::srv::ObtainJoystickAuthority;
-using ReleaseJoystickAuthority = psdk_interfaces::srv::ReleaseJoystickAuthority;
-using SetJoystickMode = psdk_interfaces::srv::SetJoystickMode;
 using VelocityCommand = psdk_interfaces::msg::VelocityCommand;
 using Point = geometry_msgs::msg::Point;
+using DescendAndCenterAction = dji_mission_interfaces::action::DescendAndCenter;
 
 class DescendAndCenter : public rclcpp::Node
 {
 public:
     DescendAndCenter();
-    ~DescendAndCenter();
 
 private:
     void positionCallback(const Point::SharedPtr msg);
     void retrievePidParameters();
     void initializeDJIFlightControl();
 
+    rclcpp_action::Server<DescendAndCenterAction>::SharedPtr descend_and_center_action_server_;
+    void execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<DescendAndCenterAction>> goal_handle);
+    bool is_action_called_ = false;
+    bool is_completed_ = false;
+
     rclcpp::Subscription<Point>::SharedPtr landing_pad_position_sub_;
     rclcpp::Publisher<VelocityCommand>::SharedPtr velocity_pub_;
 
-    rclcpp::Client<ObtainJoystickAuthority>::SharedPtr obtain_joystick_authority_client_;
-    rclcpp::Client<ReleaseJoystickAuthority>::SharedPtr release_joystick_authority_client_;
-    rclcpp::Client<SetJoystickMode>::SharedPtr set_joystick_mode_client_;
-
     std::string position_topic_;
     std::string velocity_command_topic_;
-    std::string obtain_joystick_authority_server_;
-    std::string release_joystick_authority_server_;
-    std::string set_joystick_mode_server_;
 
     // In the camera frame when it is looking down
     // positive x is to the right
@@ -47,6 +41,8 @@ private:
     PID y_pid_ = PID(0,0,0,0,0,0);
     PID z_pid_ = PID(0,0,0,0,0,0);
     float z_setpoint_;
+    float z_current_;
+    std::optional<std::chrono::steady_clock::time_point> prev_z_goal_reached_time_;
 };
 
 #endif // LANDING_PAD_CONTROLLER_HPP
