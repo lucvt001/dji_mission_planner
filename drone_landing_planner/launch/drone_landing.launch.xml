@@ -1,12 +1,11 @@
 <launch>
     <arg name="params_file" default="$(find-pkg-share drone_landing_planner)/config/params.yaml" />
 
-    <node pkg="drone_landing_planner" exec="drone_landing_planner" name="drone_landing_node" output="screen">
+    <node pkg="drone_landing_planner" exec="descend_and_center" name="descend_and_center_node" output="screen">
         <param from="$(var params_file)" />
         <param name="landing_pad_position_topic" value="/aruco/landing_pad_position" />
         <param name="velocity_command_topic" value="/psdk_wrapper_node/velocity_command" />
-        <param name="obtain_joystick_authority_server" value="/psdk_wrapper_node/obtain_joystick_authority_service" />
-        <param name="release_joystick_authority_server" value="/psdk_wrapper_node/release_joystick_authority_service" />
-        <param name="set_joystick_mode_server" value="/psdk_wrapper_node/set_joystick_mode_service" />
     </node>
+
+    <node pkg="drone_landing_planner" exec="drone_landing_testing" name="drone_landing_testing_node" output="screen" />
 </launch>
