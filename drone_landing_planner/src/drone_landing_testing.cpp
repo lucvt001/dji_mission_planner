@@ -142,21 +142,48 @@ int main(int argc, char **argv)
     auto descend_and_center_goal = DescendAndCenterAction::Goal();
     descend_and_center_goal.timeout = 20;
     auto descend_and_center_send_goal_options = rclcpp_action::Client<DescendAndCenterAction>::SendGoalOptions();
-    auto future_result_descend_and_center = descend_and_center_action_client->async_send_goal(descend_and_center_goal, descend_and_center_send_goal_options);
+    auto goal_handle_descend_and_center_future = descend_and_center_action_client->async_send_goal(descend_and_center_goal, descend_and_center_send_goal_options);
     RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "DescendAndCenter action sent");
 
-    std::this_thread::sleep_for(std::chrono::seconds(15));
-    // if (rclcpp::spin_until_future_complete(node, future_result_descend_and_center) != rclcpp::FutureReturnCode::SUCCESS) {
-    //     RCLCPP_ERROR(node->get_logger(), "Failed to complete DescendAndCenter action");
-    //     rclcpp::shutdown();
-    //     return 1;
-    // }
+    if (rclcpp::spin_until_future_complete(node, goal_handle_descend_and_center_future) != rclcpp::FutureReturnCode::SUCCESS) {
+        RCLCPP_ERROR(node->get_logger(), "Send goal to DescendAndCenter failed:(");
+        rclcpp::shutdown();
+        return 1;
+    }
+
+    auto goal_handle_descend_and_center = goal_handle_descend_and_center_future.get();
+    if (!goal_handle_descend_and_center) {
+        RCLCPP_ERROR(node->get_logger(), "Goal was rejected by the action server");
+        rclcpp::shutdown();
+        return 1;
+    }
+    auto result_future_descend_and_center = descend_and_center_action_client->async_get_result(goal_handle_descend_and_center);
+
+    RCLCPP_INFO(node->get_logger(), "Waiting for result");
+    if (rclcpp::spin_until_future_complete(node, result_future_descend_and_center) !=
+        rclcpp::FutureReturnCode::SUCCESS)
+    {
+        RCLCPP_ERROR(node->get_logger(), "get result call failed :(");
+        return 1;
+    }
+
+    auto wrapped_result = result_future_descend_and_center.get();
+
+    if (wrapped_result.result->error_code == 0) {
+        RCLCPP_INFO(node->get_logger(), "DescendAndCenter action succeeded. Landing now..");
+    } else if (wrapped_result.result->error_code == 1) {
+        RCLCPP_ERROR(node->get_logger(), "DescendAndCenter action timeout. Trying to land if possible..");
+    }
     
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "DescendAndCenter action completed. Landing now..");
     auto land_action_client = rclcpp_action::create_client<Land>(node, "/psdk_wrapper_node/land_action");
     auto land_goal = Land::Goal();
     auto land_send_goal_options = rclcpp_action::Client<Land>::SendGoalOptions();
     auto future_result_land = land_action_client->async_send_goal(land_goal, land_send_goal_options);
+
+    if (rclcpp::spin_until_future_complete(node, future_result_land) != rclcpp::FutureReturnCode::SUCCESS) {
+        RCLCPP_ERROR(node->get_logger(), "Failed to send goal to Land action");
+        return 1;
+    }
 
     rclcpp::shutdown();
     return 0;

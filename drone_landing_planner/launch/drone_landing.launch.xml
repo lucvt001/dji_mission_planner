@@ -8,4 +8,11 @@
     </node>
 
     <node pkg="drone_landing_planner" exec="drone_landing_testing" name="drone_landing_testing_node" output="screen" />
+
+    <executable 
+        cmd="ros2 bag record 
+            /aruco/annotated_frames/compressed
+            /aruco/landing_pad_position
+            /psdk_wrapper_node/velocity_command" 
+        output="screen" />
 </launch>
