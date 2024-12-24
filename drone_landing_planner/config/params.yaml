@@ -1,4 +1,4 @@
-drone_landing_node:
+descend_and_center_node:
   ros__parameters:
     x_pid:
       kp: 0.5
