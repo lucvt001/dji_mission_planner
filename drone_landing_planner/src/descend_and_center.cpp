@@ -61,16 +61,17 @@ void DescendAndCenter::execute(const std::shared_ptr<rclcpp_action::ServerGoalHa
         if (is_completed_)
         {
             result->error_code = 0;
-            goal_handle->succeed(result);
-            return;
+            goal_handle->succeed(result);           
+            RCLCPP_INFO(this->get_logger(), "DescendAndCenter action completed");
+            break;
         }
 
         if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - starting_time).count() > timeout)
         {
-            RCLCPP_ERROR(this->get_logger(), "DescendAndCenter action timed out");
+            RCLCPP_INFO(this->get_logger(), "DescendAndCenter action timed out");
             result->error_code = 1;
             goal_handle->abort(result);
-            return;
+            break;
         }
         
         if (goal_handle->is_canceling())
@@ -78,14 +79,14 @@ void DescendAndCenter::execute(const std::shared_ptr<rclcpp_action::ServerGoalHa
             RCLCPP_INFO(this->get_logger(), "DescendAndCenter action is being cancelled");
             result->error_code = 3;
             goal_handle->canceled(result);
-            return;
+            break;
         }
 
         feedback->current_height = z_current_;
         goal_handle->publish_feedback(feedback);
         rate.sleep();
     }
-
+    is_action_called_ = false;
 }
 
 void DescendAndCenter::positionCallback(const Point::SharedPtr msg)
@@ -110,7 +111,6 @@ void DescendAndCenter::positionCallback(const Point::SharedPtr msg)
                 RCLCPP_INFO(this->get_logger(), "Goal reached for 3 seconds");
             }
         }
-        return;
     }
     else
     {
@@ -143,26 +143,26 @@ void DescendAndCenter::retrievePidParameters()
     double z_kp, z_ki, z_kd, z_dt, z_max, z_min;
     double yaw_kp, yaw_ki, yaw_kd, yaw_dt, yaw_max, yaw_min;
 
-    this->declare_parameter<double>("x_pid.kp", 3.0);
-    this->declare_parameter<double>("x_pid.ki", 0.0);
-    this->declare_parameter<double>("x_pid.kd", 0.5);
-    this->declare_parameter<double>("x_pid.dt", 0.1);
-    this->declare_parameter<double>("x_pid.max", 2.0);
-    this->declare_parameter<double>("x_pid.min", -2.0);
+    this->declare_parameter<double>("x_pid.kp", 0.);
+    this->declare_parameter<double>("x_pid.ki", 0.);
+    this->declare_parameter<double>("x_pid.kd", 0.);
+    this->declare_parameter<double>("x_pid.dt", 0.);
+    this->declare_parameter<double>("x_pid.max", 0.);
+    this->declare_parameter<double>("x_pid.min", 0.);
 
-    this->declare_parameter<double>("y_pid.kp", 3.0);
-    this->declare_parameter<double>("y_pid.ki", 0.0);
-    this->declare_parameter<double>("y_pid.kd", 0.5);
-    this->declare_parameter<double>("y_pid.dt", 0.1);
-    this->declare_parameter<double>("y_pid.max", 2.0);
-    this->declare_parameter<double>("y_pid.min", -2.0);
+    this->declare_parameter<double>("y_pid.kp", 0.);
+    this->declare_parameter<double>("y_pid.ki", 0.);
+    this->declare_parameter<double>("y_pid.kd", 0.);
+    this->declare_parameter<double>("y_pid.dt", 0.);
+    this->declare_parameter<double>("y_pid.max", 0.);
+    this->declare_parameter<double>("y_pid.min", 0.);
 
-    this->declare_parameter<double>("z_pid.kp", 3.0);
-    this->declare_parameter<double>("z_pid.ki", 0.0);
-    this->declare_parameter<double>("z_pid.kd", 0.5);
-    this->declare_parameter<double>("z_pid.dt", 0.1);
-    this->declare_parameter<double>("z_pid.max", 2.0);
-    this->declare_parameter<double>("z_pid.min", -2.0);
+    this->declare_parameter<double>("z_pid.kp", 0.);
+    this->declare_parameter<double>("z_pid.ki", 0.);
+    this->declare_parameter<double>("z_pid.kd", 0.);
+    this->declare_parameter<double>("z_pid.dt", 0.);
+    this->declare_parameter<double>("z_pid.max", 0.);
+    this->declare_parameter<double>("z_pid.min", 0.);
 
     this->get_parameter("x_pid.kp", x_kp);
     this->get_parameter("x_pid.ki", x_ki);
