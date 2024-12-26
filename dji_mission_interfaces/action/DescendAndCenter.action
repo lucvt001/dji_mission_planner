@@ -10,4 +10,3 @@ int32 timeout
 uint8 error_code
 ---
 # Feedback
-float32 current_height
