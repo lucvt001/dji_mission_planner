@@ -1,10 +1,7 @@
 <launch>
-    <arg name="params_file" default="$(find-pkg-share drone_landing_planner)/config/params.yaml" />
 
     <node pkg="drone_landing_planner" exec="descend_and_center" name="descend_and_center_node" output="screen">
-        <param from="$(var params_file)" />
-        <param name="landing_pad_position_topic" value="/aruco/landing_pad_position" />
-        <param name="velocity_command_topic" value="/psdk_wrapper_node/velocity_command" />
+        <param from="$(find-pkg-share drone_landing_planner)/config/params.yaml" />
     </node>
 
     <node pkg="drone_landing_planner" exec="drone_landing_testing" name="drone_landing_testing_node" output="screen" />
@@ -15,4 +12,5 @@
             /aruco/landing_pad_position
             /psdk_wrapper_node/velocity_command" 
         output="screen" />
+
 </launch>

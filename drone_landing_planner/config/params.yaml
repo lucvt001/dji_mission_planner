@@ -1,5 +1,13 @@
 descend_and_center_node:
   ros__parameters:
+
+    landing_pad_position_topic: "/aruco/landing_pad_position"
+    velocity_command_topic: "/psdk_wrapper_node/velocity_command"
+
+    vertical_setpoint: 1.0
+    horizontal_deviation_threshold: 0.2
+    vertical_deviation_threshold: 0.2
+
     x_pid:
       kp: 0.5
       ki: 0.0
@@ -7,6 +15,7 @@ descend_and_center_node:
       dt: 0.1
       max: 1.0
       min: -1.0
+
     y_pid:
       kp: -0.5
       ki: 0.0
@@ -14,6 +23,7 @@ descend_and_center_node:
       dt: 0.1
       max: 1.0
       min: -1.0
+
     z_pid:
       kp: 0.25
       ki: 0.0
@@ -21,4 +31,3 @@ descend_and_center_node:
       dt: 0.1
       max: 0.5
       min: -0.5
-    z_setpoint: 1.0
