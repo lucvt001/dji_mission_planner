@@ -40,9 +40,11 @@ private:
     PID x_pid_ = PID(0,0,0,0,0,0);
     PID y_pid_ = PID(0,0,0,0,0,0);
     PID z_pid_ = PID(0,0,0,0,0,0);
-    float z_setpoint_;
-    float z_current_;
-    std::optional<std::chrono::steady_clock::time_point> prev_z_goal_reached_time_;
+    float vertical_setpoint_;
+
+    float horizontal_deviation_threshold_;
+    float vertical_deviation_threshold_;
+    std::optional<std::chrono::steady_clock::time_point> prev_goal_reached_time_;
 };
 
 #endif // LANDING_PAD_CONTROLLER_HPP

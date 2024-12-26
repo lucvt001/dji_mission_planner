@@ -4,9 +4,15 @@ DescendAndCenter::DescendAndCenter() : Node("descend_and_center_node")
 {
     this->declare_parameter<std::string>("landing_pad_position_topic", "/landing_pad_position");
     this->declare_parameter<std::string>("velocity_command_topic", "/drone_velocity_command");
+    this->declare_parameter<float>("vertical_setpoint", 1.0);
+    this->declare_parameter<float>("horizontal_deviation_threshold", 0.2);
+    this->declare_parameter<float>("vertical_deviation_threshold", 0.2);
     
     this->get_parameter("landing_pad_position_topic", position_topic_);
     this->get_parameter("velocity_command_topic", velocity_command_topic_);
+    this->get_parameter("vertical_setpoint", vertical_setpoint_);
+    this->get_parameter("horizontal_deviation_threshold", horizontal_deviation_threshold_);
+    this->get_parameter("vertical_deviation_threshold", vertical_deviation_threshold_);
 
     std::string node_name = this->get_name();
     
@@ -38,9 +44,6 @@ DescendAndCenter::DescendAndCenter() : Node("descend_and_center_node")
     velocity_pub_ = this->create_publisher<VelocityCommand>(velocity_command_topic_, 10);
 
     retrievePidParameters();
-    this->declare_parameter<float>("z_setpoint", 1.0);
-    this->get_parameter("z_setpoint", z_setpoint_);
-    std::cout << "Z setpoint: " << z_setpoint_ << std::endl;
 }
 
 void DescendAndCenter::execute(const std::shared_ptr<rclcpp_action::ServerGoalHandle<DescendAndCenterAction>> goal_handle)
@@ -52,7 +55,6 @@ void DescendAndCenter::execute(const std::shared_ptr<rclcpp_action::ServerGoalHa
     int timeout = goal->timeout;
 
     auto result = std::make_shared<DescendAndCenterAction::Result>();
-    auto feedback = std::make_shared<DescendAndCenterAction::Feedback>();
     auto starting_time = std::chrono::steady_clock::now();
     rclcpp::Rate rate(100);
 
@@ -82,8 +84,6 @@ void DescendAndCenter::execute(const std::shared_ptr<rclcpp_action::ServerGoalHa
             break;
         }
 
-        feedback->current_height = z_current_;
-        goal_handle->publish_feedback(feedback);
         rate.sleep();
     }
     is_action_called_ = false;
@@ -94,29 +94,32 @@ void DescendAndCenter::positionCallback(const Point::SharedPtr msg)
     if (!is_action_called_)
         return;
 
-    z_current_ = msg->z;
-    if (abs(z_current_ - z_setpoint_) < 0.2)
+    // x deviation is rightwards in the body frame (aka rightwards in the camera frame)
+    float x_deviation_in_meter = (msg->x - 0.5) * msg->z;  
+    // y axis is backwards in the body frame (aka downwards in the camera frame)
+    float y_deviation_in_meter = (msg->y - 0.5) * msg->z;   
+
+    if (abs(msg->z - vertical_setpoint_) < vertical_deviation_threshold_ 
+        && abs(x_deviation_in_meter) < horizontal_deviation_threshold_ 
+        && abs(y_deviation_in_meter) < horizontal_deviation_threshold_)
     {
-        if (!prev_z_goal_reached_time_.has_value())
-        {
-            prev_z_goal_reached_time_ = std::chrono::steady_clock::now();
-        }
+        if (!prev_goal_reached_time_.has_value())
+            prev_goal_reached_time_ = std::chrono::steady_clock::now();
         else
         {
             auto now = std::chrono::steady_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::seconds>(now - prev_z_goal_reached_time_.value()).count();
+            auto duration = std::chrono::duration_cast<std::chrono::seconds>(now - prev_goal_reached_time_.value()).count();
             if (duration >= 3)
             {
                 is_completed_ = true;
                 RCLCPP_INFO(this->get_logger(), "Goal reached for 3 seconds");
             }
         }
+        std::cout << "Goal reached" << std::endl;
     }
     else
-    {
         // Reset the time if the goal is not reached
-        prev_z_goal_reached_time_.reset();
-    }
+        prev_goal_reached_time_.reset();
         
     auto velocity_command = VelocityCommand();
 
@@ -124,12 +127,10 @@ void DescendAndCenter::positionCallback(const Point::SharedPtr msg)
     // For velocity command, the coordinate system in body frame is Forward-Right-Down (FRD), as per PSDK documentation
     // It differs from the camera frame which is Right-Backward-Down, so we have to be careful
     // Error is always setpoint - current, so you can check for the signs of the error to see if the drone is moving in the correct direction
-    float x_deviation_camera_frame = (msg->x - 0.5) * msg->z;
-    float y_deviation_camera_frame = (msg->y - 0.5) * msg->z;
 
-    velocity_command.x = x_pid_.calculate(0, y_deviation_camera_frame);
-    velocity_command.y = y_pid_.calculate(0, x_deviation_camera_frame);
-    velocity_command.z = z_pid_.calculate(z_setpoint_, msg->z);
+    velocity_command.x = x_pid_.calculate(0, y_deviation_in_meter);
+    velocity_command.y = y_pid_.calculate(0, x_deviation_in_meter);
+    velocity_command.z = z_pid_.calculate(vertical_setpoint_, msg->z);
     velocity_command.yaw = 0.0;
 
     velocity_pub_->publish(velocity_command);
@@ -192,6 +193,7 @@ void DescendAndCenter::retrievePidParameters()
     std::cout << "X PID: " << x_kp << " " << x_ki << " " << x_kd << " " << x_dt << " " << x_max << " " << x_min << std::endl;
     std::cout << "Y PID: " << y_kp << " " << y_ki << " " << y_kd << " " << y_dt << " " << y_max << " " << y_min << std::endl;
     std::cout << "Z PID: " << z_kp << " " << z_ki << " " << z_kd << " " << z_dt << " " << z_max << " " << z_min << std::endl;
+    std::cout << "Z setpoint: " << vertical_setpoint_ << std::endl;
 }
 
 int main(int argc, char **argv)
