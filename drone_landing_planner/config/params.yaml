@@ -1,8 +1,17 @@
-descend_and_center_node:
+drone_landing_node:
   ros__parameters:
+    publishers:
+      velocity_command: "/psdk_wrapper_node/velocity_command"
 
-    landing_pad_position_topic: "/aruco/landing_pad_position"
-    velocity_command_topic: "/psdk_wrapper_node/velocity_command"
+    subscribers:
+      landing_pad_position: "/aruco/landing_pad_position"
+
+    service_clients:
+      obtain_joystick_authority: "/psdk_wrapper_node/obtain_joystick_authority_service"
+      set_joystick_mode: "/psdk_wrapper_node/set_joystick_mode_service"
+
+    actions:
+      land_on_pad: "/drone_landing_node/land_on_pad_action"
 
     vertical_setpoint: 1.0
     horizontal_deviation_threshold: 0.2
@@ -15,14 +24,18 @@ descend_and_center_node:
       dt: 0.1
       max: 1.0
       min: -1.0
+      conditional_integral_input_deviation: 0.3
+      verbose: false
 
     y_pid:
-      kp: -0.5
+      kp: 0.5
       ki: 0.0
-      kd: -0.1
+      kd: 0.1
       dt: 0.1
       max: 1.0
       min: -1.0
+      conditional_integral_input_deviation: 0.3
+      verbose: false
 
     z_pid:
       kp: 0.25
@@ -31,3 +44,4 @@ descend_and_center_node:
       dt: 0.1
       max: 0.5
       min: -0.5
+      verbose: false

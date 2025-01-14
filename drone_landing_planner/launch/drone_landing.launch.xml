@@ -1,10 +1,10 @@
 <launch>
 
-    <node pkg="drone_landing_planner" exec="descend_and_center" name="descend_and_center_node" output="screen">
+    <node pkg="drone_landing_planner" exec="drone_landing" name="drone_landing_node" output="screen">
         <param from="$(find-pkg-share drone_landing_planner)/config/params.yaml" />
     </node>
 
-    <node pkg="drone_landing_planner" exec="drone_landing_testing" name="drone_landing_testing_node" output="screen" />
+    <!-- <node pkg="drone_landing_planner" exec="drone_landing_testing" name="drone_landing_testing_node" output="screen" /> -->
 
     <executable 
         cmd="ros2 bag record 

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(dji_mission_interfaces)
+project(pid_package)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -7,21 +7,22 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(action_msgs REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
+find_package(rclcpp REQUIRED)
 
-set(action_files
-  "action/LandOnPad.action"
-  "action/FollowVehicle.action"
-)
+include_directories(include)
 
-rosidl_generate_interfaces(${PROJECT_NAME}
-  # ${message_files}
-  # ${service_files}
-  ${action_files}
-  DEPENDENCIES action_msgs std_msgs
+add_library(pid_package SHARED src/pid.cpp)
+ament_target_dependencies(pid_package ament_cmake rclcpp)
+
+install(TARGETS pid_package
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
 )
+install(DIRECTORY include/ DESTINATION include)
+
+ament_export_include_directories(include)
+ament_export_libraries(pid_package)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

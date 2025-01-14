@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>drone_landing_planner</name>
+  <name>vehicle_following_planner</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
   <maintainer email="luc001@e.ntu.edu.sg">root</maintainer>
@@ -11,10 +11,11 @@
 
   <depend>rclcpp</depend>
   <depend>rclcpp_action</depend>
-  <depend>rclcpp_components</depend>
-  <depend>std_msgs</depend>
   <depend>geometry_msgs</depend>
+  <depend>geographic_msgs</depend>
   <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>geodesy</depend>
   <depend>pid_package</depend>
   <depend>psdk_interfaces</depend>
   <depend>dji_mission_interfaces</depend>

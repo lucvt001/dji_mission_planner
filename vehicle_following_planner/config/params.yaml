@@ -1,0 +1,45 @@
+vehicle_following_node:
+  ros__parameters:
+    publishers:
+      velocity_command: "/psdk_wrapper_node/velocity_command"
+      car_ned: "/vehicle_following_node/car_ned"
+    
+    subscribers:
+      car_gps: "/car_node/gps"
+      drone_gps: "/psdk_wrapper_node/gps"
+      yaw_control: "/vehicle_following_node/yaw_control"
+      height_control: "/vehicle_following_node/height_control"
+
+    service_clients:
+      obtain_joystick_authority: "/psdk_wrapper_node/obtain_joystick_authority_service"
+      set_joystick_mode: "/psdk_wrapper_node/set_joystick_mode_service"
+
+    actions:
+      follow_vehicle: "/vehicle_following_node/follow_vehicle_action"
+
+    x_pid:
+      kp: 1.5
+      ki: 0.3
+      kd: 1.0
+      dt: 0.1
+      max: 20.0
+      min: -20.0
+      verbose: false
+
+    y_pid:
+      kp: 1.5
+      ki: 0.3
+      kd: 1.0
+      dt: 0.1
+      max: 20.0
+      min: -20.0
+      verbose: false
+
+    z_pid:
+      kp: 0.5
+      ki: 0.2
+      kd: 0.3
+      dt: 0.1
+      max: 3.0
+      min: -3.0
+      verbose: false

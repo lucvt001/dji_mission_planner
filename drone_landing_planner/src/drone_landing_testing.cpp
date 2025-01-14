@@ -6,7 +6,6 @@
 #include <psdk_interfaces/srv/obtain_joystick_authority.hpp>
 #include <psdk_interfaces/srv/set_joystick_mode.hpp>
 #include <psdk_interfaces/srv/set_gimbal_angle.hpp>
-#include <drone_landing_planner/init_flight_control.hpp>
 #include <drone_landing_planner/descend_and_center.hpp>
 
 using TakeOff = psdk_interfaces::action::TakeOff;

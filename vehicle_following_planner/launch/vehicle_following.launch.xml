@@ -1,0 +1,9 @@
+<launch>
+
+    <include file="$(find-pkg-share airsim_psdk_ros2)/launch/airsim.launch.xml" />
+
+    <node name="vehicle_following_node" pkg="vehicle_following_planner" exec="vehicle_following" output="screen">
+        <param from="$(find-pkg-share vehicle_following_planner)/config/params.yaml" />
+    </node>
+    
+</launch>
